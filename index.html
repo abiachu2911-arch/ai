@@ -1,0 +1,568 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NAT — Know Anything Today</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #04070f;
+    --surface: #0c1220;
+    --surface2: #111827;
+    --border: #1e2d45;
+    --accent: #00d4ff;
+    --accent2: #7c3aed;
+    --accent3: #f59e0b;
+    --text: #e8f0fe;
+    --muted: #6b7fa3;
+    --glow: rgba(0,212,255,0.15);
+  }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 15px;
+    line-height: 1.6;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* ── BACKGROUND ── */
+  .bg-grid {
+    position: fixed; inset: 0; z-index: 0; pointer-events: none;
+    background-image:
+      linear-gradient(rgba(0,212,255,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,212,255,0.03) 1px, transparent 1px);
+    background-size: 60px 60px;
+  }
+  .bg-orb {
+    position: fixed; border-radius: 50%; filter: blur(120px); pointer-events: none; z-index: 0;
+  }
+  .orb1 { width: 600px; height: 600px; top: -200px; left: -150px; background: radial-gradient(circle, rgba(124,58,237,0.18) 0%, transparent 70%); }
+  .orb2 { width: 500px; height: 500px; bottom: -100px; right: -100px; background: radial-gradient(circle, rgba(0,212,255,0.14) 0%, transparent 70%); }
+
+  /* ── NAV ── */
+  nav {
+    position: sticky; top: 0; z-index: 100;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0 32px; height: 60px;
+    background: rgba(4,7,15,0.85);
+    backdrop-filter: blur(20px);
+    border-bottom: 1px solid var(--border);
+  }
+  .logo {
+    font-family: 'Syne', sans-serif;
+    font-weight: 800; font-size: 26px;
+    letter-spacing: -1px;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  }
+  .logo span { color: var(--accent3); -webkit-text-fill-color: var(--accent3); }
+  .nav-links { display: flex; gap: 6px; }
+  .nav-links button {
+    background: none; border: none; color: var(--muted);
+    font-family: 'DM Sans', sans-serif; font-size: 13px;
+    padding: 6px 14px; border-radius: 20px; cursor: pointer;
+    transition: all .2s;
+  }
+  .nav-links button:hover, .nav-links button.active {
+    color: var(--text); background: var(--surface);
+  }
+  .nav-right { display: flex; align-items: center; gap: 10px; }
+  .nav-tag {
+    font-size: 10px; font-weight: 600; letter-spacing: 1.5px;
+    text-transform: uppercase; color: var(--accent);
+    border: 1px solid rgba(0,212,255,0.3);
+    padding: 3px 10px; border-radius: 20px;
+  }
+
+  /* ── WRAPPER ── */
+  .wrapper { position: relative; z-index: 1; max-width: 860px; margin: 0 auto; padding: 0 20px; }
+
+  /* ── HERO ── */
+  .hero {
+    text-align: center;
+    padding: 72px 0 40px;
+    animation: fadeUp .8s ease both;
+  }
+  .hero-tag {
+    display: inline-flex; align-items: center; gap: 8px;
+    font-size: 11px; font-weight: 600; letter-spacing: 2px; text-transform: uppercase;
+    color: var(--accent); background: rgba(0,212,255,0.08);
+    border: 1px solid rgba(0,212,255,0.2);
+    padding: 5px 14px; border-radius: 20px; margin-bottom: 24px;
+  }
+  .hero-tag::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: var(--accent); animation: pulse 1.5s infinite; }
+  .hero h1 {
+    font-family: 'Syne', sans-serif;
+    font-size: clamp(38px, 7vw, 68px);
+    font-weight: 800; line-height: 1.05;
+    letter-spacing: -2px;
+    margin-bottom: 16px;
+  }
+  .hero h1 em { font-style: normal; background: linear-gradient(135deg, var(--accent), var(--accent2)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+  .hero p { color: var(--muted); font-size: 17px; max-width: 480px; margin: 0 auto 36px; font-weight: 300; }
+
+  /* ── SEARCH BOX ── */
+  .search-wrap {
+    position: relative; margin-bottom: 20px;
+    animation: fadeUp .8s .2s ease both;
+  }
+  .search-box {
+    width: 100%; padding: 18px 130px 18px 52px;
+    background: var(--surface);
+    border: 1.5px solid var(--border);
+    border-radius: 16px; outline: none;
+    color: var(--text); font-family: 'DM Sans', sans-serif; font-size: 16px;
+    transition: border-color .25s, box-shadow .25s;
+  }
+  .search-box:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 4px rgba(0,212,255,0.1), 0 20px 60px rgba(0,0,0,0.4);
+  }
+  .search-box::placeholder { color: var(--muted); }
+  .search-icon {
+    position: absolute; left: 18px; top: 50%; transform: translateY(-50%);
+    color: var(--muted); font-size: 18px; pointer-events: none;
+  }
+  .search-btn {
+    position: absolute; right: 8px; top: 50%; transform: translateY(-50%);
+    background: linear-gradient(135deg, var(--accent), #0099cc);
+    border: none; color: #000; font-family: 'Syne', sans-serif;
+    font-weight: 700; font-size: 13px; letter-spacing: .5px;
+    padding: 10px 22px; border-radius: 10px; cursor: pointer;
+    transition: opacity .2s, transform .15s;
+  }
+  .search-btn:hover { opacity: .9; transform: translateY(-50%) scale(1.02); }
+  .search-btn:active { transform: translateY(-50%) scale(0.98); }
+
+  /* ── CATEGORY PILLS ── */
+  .cats {
+    display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin-bottom: 40px;
+    animation: fadeUp .8s .3s ease both;
+  }
+  .cat-pill {
+    display: flex; align-items: center; gap: 6px;
+    padding: 8px 16px; border-radius: 30px;
+    border: 1px solid var(--border);
+    background: var(--surface); color: var(--muted);
+    font-size: 13px; cursor: pointer;
+    transition: all .2s;
+  }
+  .cat-pill:hover, .cat-pill.active {
+    border-color: var(--accent); color: var(--accent);
+    background: rgba(0,212,255,0.07);
+  }
+
+  /* ── ANSWER CARD ── */
+  #answer-section { margin-bottom: 32px; }
+  .answer-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 28px 32px;
+    position: relative;
+    overflow: hidden;
+    animation: fadeUp .4s ease both;
+  }
+  .answer-card::before {
+    content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
+    background: linear-gradient(90deg, var(--accent), var(--accent2));
+  }
+  .answer-header {
+    display: flex; align-items: center; gap: 10px; margin-bottom: 16px;
+  }
+  .ai-badge {
+    display: flex; align-items: center; gap: 6px;
+    font-size: 11px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase;
+    color: var(--accent); background: rgba(0,212,255,0.1);
+    padding: 4px 12px; border-radius: 20px;
+  }
+  .ai-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); animation: pulse 1.5s infinite; }
+  .answer-query { font-size: 13px; color: var(--muted); }
+  .answer-body { font-size: 15.5px; line-height: 1.8; color: var(--text); }
+  .answer-body strong { color: var(--accent); font-weight: 600; }
+  .answer-body .tag {
+    display: inline-block; font-size: 11px; background: rgba(124,58,237,.15);
+    color: #a78bfa; border: 1px solid rgba(124,58,237,.3);
+    padding: 2px 8px; border-radius: 4px; margin: 0 2px;
+  }
+  .typing-cursor::after { content: '▋'; animation: blink .8s infinite; color: var(--accent); }
+
+  /* ── LOADING ── */
+  .loading {
+    display: flex; align-items: center; gap: 12px;
+    color: var(--muted); font-size: 14px; padding: 20px 0;
+  }
+  .dots span {
+    display: inline-block; width: 7px; height: 7px; border-radius: 50%;
+    background: var(--accent); margin: 0 2px;
+    animation: bounce .8s infinite;
+  }
+  .dots span:nth-child(2) { animation-delay: .15s; }
+  .dots span:nth-child(3) { animation-delay: .3s; }
+
+  /* ── RESULTS ── */
+  .results-grid { display: flex; flex-direction: column; gap: 12px; }
+  .result-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px; padding: 18px 22px;
+    cursor: pointer; transition: border-color .2s, transform .15s;
+    animation: fadeUp .3s ease both;
+  }
+  .result-card:hover { border-color: rgba(0,212,255,.4); transform: translateX(4px); }
+  .result-domain {
+    display: flex; align-items: center; gap: 8px;
+    font-size: 12px; color: var(--muted); margin-bottom: 6px;
+  }
+  .result-favicon { width: 14px; height: 14px; border-radius: 3px; background: var(--border); }
+  .result-title { font-family: 'Syne', sans-serif; font-weight: 600; font-size: 15px; color: var(--text); margin-bottom: 6px; }
+  .result-title:hover { color: var(--accent); }
+  .result-snippet { font-size: 13px; color: var(--muted); line-height: 1.6; }
+  .result-meta { display: flex; gap: 10px; margin-top: 8px; }
+  .result-tag {
+    font-size: 11px; padding: 2px 10px; border-radius: 20px;
+    background: rgba(245,158,11,.08); color: var(--accent3); border: 1px solid rgba(245,158,11,.2);
+  }
+
+  /* ── TOPICS ── */
+  .section-title {
+    font-family: 'Syne', sans-serif; font-weight: 700; font-size: 13px;
+    letter-spacing: 2px; text-transform: uppercase;
+    color: var(--muted); margin-bottom: 16px;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .section-title::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+
+  .topics-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px,1fr)); gap: 10px; margin-bottom: 40px; }
+  .topic-card {
+    padding: 18px; border-radius: 14px;
+    background: var(--surface); border: 1px solid var(--border);
+    cursor: pointer; transition: all .2s;
+    display: flex; flex-direction: column; gap: 8px;
+  }
+  .topic-card:hover { border-color: var(--accent); transform: translateY(-2px); box-shadow: 0 8px 30px rgba(0,0,0,.3); }
+  .topic-icon { font-size: 24px; }
+  .topic-name { font-family: 'Syne', sans-serif; font-weight: 600; font-size: 14px; }
+  .topic-desc { font-size: 12px; color: var(--muted); line-height: 1.5; }
+
+  /* ── TRENDING ── */
+  .trending { margin-bottom: 40px; }
+  .trend-list { display: flex; flex-direction: column; gap: 1px; }
+  .trend-item {
+    display: flex; align-items: center; gap: 14px;
+    padding: 12px 16px; border-radius: 10px;
+    cursor: pointer; transition: background .15s;
+  }
+  .trend-item:hover { background: var(--surface); }
+  .trend-num { font-family: 'Syne', sans-serif; font-weight: 800; font-size: 18px; color: var(--border); width: 28px; text-align: right; }
+  .trend-text { flex: 1; font-size: 14px; }
+  .trend-cat { font-size: 11px; color: var(--muted); }
+  .trend-hot { font-size: 10px; font-weight: 700; letter-spacing: 1px; color: #f87171; background: rgba(248,113,113,.1); border: 1px solid rgba(248,113,113,.2); padding: 2px 8px; border-radius: 20px; }
+
+  /* ── FOOTER ── */
+  footer {
+    border-top: 1px solid var(--border);
+    padding: 28px 20px;
+    text-align: center;
+    color: var(--muted); font-size: 13px;
+  }
+  footer .foot-logo { font-family: 'Syne', sans-serif; font-weight: 800; font-size: 18px; background: linear-gradient(135deg, var(--accent), var(--accent2)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: 8px; }
+
+  /* ── ANIMATIONS ── */
+  @keyframes fadeUp { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: translateY(0); } }
+  @keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.5;transform:scale(.8)} }
+  @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
+  @keyframes bounce { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-8px)} }
+
+  /* ── SCROLLBAR ── */
+  ::-webkit-scrollbar { width: 6px; } ::-webkit-scrollbar-track { background: var(--bg); } ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+  /* ── MOBILE ── */
+  @media(max-width:600px){
+    nav { padding: 0 16px; }
+    .nav-links { display: none; }
+    .hero { padding: 48px 0 32px; }
+    .answer-card { padding: 20px; }
+    .topics-grid { grid-template-columns: 1fr 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<div class="bg-grid"></div>
+<div class="bg-orb orb1"></div>
+<div class="bg-orb orb2"></div>
+
+<!-- NAV -->
+<nav>
+  <div class="logo">N<span>A</span>T</div>
+  <div class="nav-links">
+    <button class="active" onclick="setTab(this,'all')">All</button>
+    <button onclick="setTab(this,'news')">News</button>
+    <button onclick="setTab(this,'sports')">Sports</button>
+    <button onclick="setTab(this,'books')">Books</button>
+    <button onclick="setTab(this,'science')">Science</button>
+  </div>
+  <div class="nav-right">
+    <div class="nav-tag">LIVE</div>
+  </div>
+</nav>
+
+<!-- MAIN -->
+<div class="wrapper">
+
+  <!-- HERO -->
+  <section class="hero" id="hero">
+    <div class="hero-tag">AI-Powered Intelligence</div>
+    <h1>Know <em>Anything</em>,<br>Right Now.</h1>
+    <p>Ask NAT anything — news, sports scores, book summaries, science, history & more. Instant, accurate answers.</p>
+  </section>
+
+  <!-- SEARCH -->
+  <div class="search-wrap">
+    <span class="search-icon">🔍</span>
+    <input class="search-box" id="searchInput" type="text"
+      placeholder="Ask anything — news, sports, books, science..."
+      onkeydown="if(event.key==='Enter') doSearch()"
+    >
+    <button class="search-btn" onclick="doSearch()">Ask NAT →</button>
+  </div>
+
+  <!-- CATEGORY PILLS -->
+  <div class="cats" id="cats">
+    <div class="cat-pill active" onclick="quickSearch('Breaking news today','news')">📰 News</div>
+    <div class="cat-pill" onclick="quickSearch('Latest sports scores and results','sports')">⚽ Sports</div>
+    <div class="cat-pill" onclick="quickSearch('Best books to read 2024','books')">📚 Books</div>
+    <div class="cat-pill" onclick="quickSearch('Latest science discoveries','science')">🔬 Science</div>
+    <div class="cat-pill" onclick="quickSearch('Technology trends 2025','tech')">💻 Tech</div>
+    <div class="cat-pill" onclick="quickSearch('World history facts','history')">🌍 History</div>
+    <div class="cat-pill" onclick="quickSearch('Finance and stock market news','finance')">📈 Finance</div>
+    <div class="cat-pill" onclick="quickSearch('Health and wellness tips','health')">❤️ Health</div>
+  </div>
+
+  <!-- ANSWER SECTION -->
+  <div id="answer-section"></div>
+
+  <!-- RESULTS SECTION -->
+  <div id="results-section"></div>
+
+  <!-- EXPLORE TOPICS -->
+  <div id="home-content">
+    <div class="section-title">Explore Topics</div>
+    <div class="topics-grid">
+      <div class="topic-card" onclick="quickSearch('Breaking world news headlines today','news')">
+        <div class="topic-icon">📰</div>
+        <div class="topic-name">World News</div>
+        <div class="topic-desc">Latest headlines and breaking stories from around the globe.</div>
+      </div>
+      <div class="topic-card" onclick="quickSearch('Live sports scores soccer NBA NFL cricket today','sports')">
+        <div class="topic-icon">🏆</div>
+        <div class="topic-name">Sports</div>
+        <div class="topic-desc">Scores, stats, transfers and match analysis live.</div>
+      </div>
+      <div class="topic-card" onclick="quickSearch('Best novels to read book recommendations 2024','books')">
+        <div class="topic-icon">📚</div>
+        <div class="topic-name">Books & Literature</div>
+        <div class="topic-desc">Reviews, summaries and reading recommendations.</div>
+      </div>
+      <div class="topic-card" onclick="quickSearch('Space exploration AI discoveries science 2025','science')">
+        <div class="topic-icon">🔬</div>
+        <div class="topic-name">Science</div>
+        <div class="topic-desc">Discoveries, research and breakthroughs explained simply.</div>
+      </div>
+      <div class="topic-card" onclick="quickSearch('Artificial intelligence technology news 2025','tech')">
+        <div class="topic-icon">🤖</div>
+        <div class="topic-name">Technology</div>
+        <div class="topic-desc">AI, gadgets, startups and digital innovation.</div>
+      </div>
+      <div class="topic-card" onclick="quickSearch('Stock market crypto finance economy news','finance')">
+        <div class="topic-icon">📈</div>
+        <div class="topic-name">Finance</div>
+        <div class="topic-desc">Markets, economy, crypto and investment insights.</div>
+      </div>
+      <div class="topic-card" onclick="quickSearch('World history important events facts','history')">
+        <div class="topic-icon">🏛️</div>
+        <div class="topic-name">History</div>
+        <div class="topic-desc">Explore civilizations, events and historical context.</div>
+      </div>
+      <div class="topic-card" onclick="quickSearch('Health wellness fitness nutrition mental health tips','health')">
+        <div class="topic-icon">❤️‍🔥</div>
+        <div class="topic-name">Health</div>
+        <div class="topic-desc">Wellness, medical news and healthy living guides.</div>
+      </div>
+    </div>
+
+    <!-- TRENDING -->
+    <div class="trending">
+      <div class="section-title">Trending Searches</div>
+      <div class="trend-list" id="trendList">
+        <div class="trend-item" onclick="quickSearch('FIFA World Cup 2026 schedule teams','sports')">
+          <div class="trend-num">01</div><div><div class="trend-text">FIFA World Cup 2026</div><div class="trend-cat">Sports</div></div><div class="trend-hot">🔥 Hot</div>
+        </div>
+        <div class="trend-item" onclick="quickSearch('Best science fiction novels 2024','books')">
+          <div class="trend-num">02</div><div><div class="trend-text">Best Sci-Fi Novels 2024</div><div class="trend-cat">Books</div></div>
+        </div>
+        <div class="trend-item" onclick="quickSearch('AI artificial intelligence latest news developments','tech')">
+          <div class="trend-num">03</div><div><div class="trend-text">AI Breakthroughs 2025</div><div class="trend-cat">Technology</div></div><div class="trend-hot">🔥 Hot</div>
+        </div>
+        <div class="trend-item" onclick="quickSearch('Mars mission space exploration NASA 2025','science')">
+          <div class="trend-num">04</div><div><div class="trend-text">Mars Mission Updates</div><div class="trend-cat">Science</div></div>
+        </div>
+        <div class="trend-item" onclick="quickSearch('Global economy inflation interest rates 2025','finance')">
+          <div class="trend-num">05</div><div><div class="trend-text">Global Economy Outlook</div><div class="trend-cat">Finance</div></div>
+        </div>
+        <div class="trend-item" onclick="quickSearch('Climate change global warming recent news 2025','science')">
+          <div class="trend-num">06</div><div><div class="trend-text">Climate Change Report</div><div class="trend-cat">Environment</div></div>
+        </div>
+        <div class="trend-item" onclick="quickSearch('NBA basketball season scores standings 2025','sports')">
+          <div class="trend-num">07</div><div><div class="trend-text">NBA Season 2025</div><div class="trend-cat">Sports</div></div>
+        </div>
+        <div class="trend-item" onclick="quickSearch('Booker Prize winner novels literature award','books')">
+          <div class="trend-num">08</div><div><div class="trend-text">Booker Prize Winners</div><div class="trend-cat">Books</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- FOOTER -->
+<footer>
+  <div class="foot-logo">NAT</div>
+  <div>Know Anything Today &nbsp;·&nbsp; AI-Powered Search &nbsp;·&nbsp; Live Information</div>
+  <div style="margin-top:6px; font-size:11px;">Powered by Claude AI &nbsp;·&nbsp; © 2025 NAT</div>
+</footer>
+
+<script>
+const SYSTEM = `You are NAT (Know Anything Today), a highly accurate AI search engine assistant. 
+When a user asks a question, provide a comprehensive, well-structured answer. 
+Format your response as JSON with these fields:
+{
+  "summary": "A rich 2-4 paragraph answer with key facts bolded using <strong> tags",
+  "category": "news | sports | books | science | tech | finance | history | health | general",
+  "results": [
+    { "title": "Result title", "domain": "example.com", "snippet": "Brief description of this result", "tag": "category label" }
+  ],
+  "relatedQueries": ["related query 1", "related query 2", "related query 3"]
+}
+Always include 4-6 results. Be accurate, informative and concise. Use current knowledge up to 2025.`;
+
+let currentCategory = 'all';
+
+function setTab(el, cat) {
+  document.querySelectorAll('.nav-links button').forEach(b => b.classList.remove('active'));
+  el.classList.add('active');
+  currentCategory = cat;
+  if (cat !== 'all') quickSearch(`Latest ${cat} information and news`, cat);
+}
+
+async function doSearch() {
+  const q = document.getElementById('searchInput').value.trim();
+  if (!q) return;
+  await runSearch(q);
+}
+
+function quickSearch(q, cat) {
+  document.getElementById('searchInput').value = q;
+  runSearch(q);
+  window.scrollTo({ top: document.querySelector('.search-wrap').offsetTop - 80, behavior: 'smooth' });
+}
+
+async function runSearch(query) {
+  const answerEl = document.getElementById('answer-section');
+  const resultsEl = document.getElementById('results-section');
+  const homeEl = document.getElementById('home-content');
+
+  homeEl.style.display = 'none';
+  answerEl.innerHTML = `
+    <div class="answer-card">
+      <div class="loading">
+        <div class="dots"><span></span><span></span><span></span></div>
+        NAT is thinking…
+      </div>
+    </div>`;
+  resultsEl.innerHTML = '';
+
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1000,
+        system: SYSTEM,
+        messages: [{ role: 'user', content: query }]
+      })
+    });
+
+    const data = await res.json();
+    const text = data.content.map(i => i.text || '').join('');
+    const clean = text.replace(/```json|```/g, '').trim();
+    let parsed;
+    try { parsed = JSON.parse(clean); } catch(e) { parsed = { summary: text, results: [], relatedQueries: [] }; }
+
+    renderAnswer(query, parsed);
+    renderResults(parsed);
+  } catch (err) {
+    answerEl.innerHTML = `<div class="answer-card" style="border-color:#f87171">
+      <div style="color:#f87171">⚠️ NAT couldn't fetch a response. Check your connection.</div>
+    </div>`;
+  }
+}
+
+function renderAnswer(query, data) {
+  const el = document.getElementById('answer-section');
+  el.innerHTML = `
+    <div class="answer-card">
+      <div class="answer-header">
+        <div class="ai-badge"><span class="ai-dot"></span> NAT Answer</div>
+        <div class="answer-query">for "${escHtml(query)}"</div>
+      </div>
+      <div class="answer-body">${data.summary || 'No summary available.'}</div>
+      ${data.relatedQueries?.length ? `
+        <div style="margin-top:20px; padding-top:16px; border-top:1px solid var(--border)">
+          <div style="font-size:12px; color:var(--muted); margin-bottom:10px; text-transform:uppercase; letter-spacing:1px;">Related</div>
+          <div style="display:flex; flex-wrap:wrap; gap:8px;">
+            ${data.relatedQueries.map(q => `<span onclick="quickSearch('${escHtml(q)}','all')" style="cursor:pointer;font-size:13px;padding:5px 14px;border-radius:20px;border:1px solid var(--border);color:var(--muted);transition:all .2s" onmouseover="this.style.borderColor='var(--accent)';this.style.color='var(--accent)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--muted)'">${escHtml(q)}</span>`).join('')}
+          </div>
+        </div>` : ''}
+    </div>`;
+}
+
+function renderResults(data) {
+  const el = document.getElementById('results-section');
+  if (!data.results?.length) return;
+  el.innerHTML = `
+    <div class="section-title" style="margin-top:28px">Sources & Results</div>
+    <div class="results-grid">
+      ${data.results.map((r, i) => `
+        <div class="result-card" style="animation-delay:${i * 0.07}s">
+          <div class="result-domain">
+            <div class="result-favicon"></div>
+            ${escHtml(r.domain || 'web source')}
+          </div>
+          <div class="result-title">${escHtml(r.title || 'Result')}</div>
+          <div class="result-snippet">${escHtml(r.snippet || '')}</div>
+          ${r.tag ? `<div class="result-meta"><div class="result-tag">${escHtml(r.tag)}</div></div>` : ''}
+        </div>`).join('')}
+    </div>
+    <div style="margin-top:16px;margin-bottom:32px">
+      <button onclick="document.getElementById('home-content').style.display='block'" style="background:none;border:1px solid var(--border);color:var(--muted);padding:8px 20px;border-radius:20px;font-family:'DM Sans',sans-serif;font-size:13px;cursor:pointer;transition:all .2s" onmouseover="this.style.borderColor='var(--accent)';this.style.color='var(--accent)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--muted)'">↩ Back to topics</button>
+    </div>`;
+}
+
+function escHtml(str) {
+  if (!str) return '';
+  return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+</script>
+</body>
+</html>
